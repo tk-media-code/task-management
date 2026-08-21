@@ -11,3 +11,17 @@ __pycache__/
 # scripts/quality-check.sh はworktree内からの実行を意図的に拒否する
 #（docker execがメインチェックアウト側のコードを検査してしまう事故を防ぐため）。
 .claude/worktrees/
+
+# --- Terraform ---
+# terraform init が取得するプロバイダのバイナリ。数百MBになり、init すれば復元できる
+.terraform/
+# state（Terraformが「自分が何を作ったか」を記録する台帳）。リソースの属性を平文で持つため、
+# DBのパスワードのような機密がそのまま入る（docs/terraform/03-state.md 12章参照）。
+# .env と同格に扱い、絶対にコミットしない
+*.tfstate
+*.tfstate.*
+# 変数の値。パスワードなどを書く可能性があるため除外する（雛形を配るなら *.tfvars.example にする）
+*.tfvars
+*.tfvars.json
+# 注: .terraform.lock.hcl は除外しない（＝コミットする）。プロバイダのバージョンと
+# チェックサムを固定し、どの端末でも同じものが入るようにするため。package-lock.json と同じ役割
