@@ -49,8 +49,10 @@
 - Java**言語**自体（本プロジェクトの実装を理解するために必要な範囲に限る）の学習ドキュメントは [docs/java/](./docs/java/README.md) に整備している（例：ジェネリクス、ラムダ式、record、例外処理など）。更新方法は[docs/java/README.mdの更新ルール](./docs/java/README.md#このドキュメントの更新ルール)を参照。
 - Reactというライブラリ・周辺ツール（React Router、Vite、Tailwind CSSなど）の使い方の学習ドキュメントは [docs/react/](./docs/react/README.md) に整備している（例：コンポーネント、フック、ルーティング、状態管理など）。更新方法は[docs/react/README.mdの更新ルール](./docs/react/README.md#このドキュメントの更新ルール)を参照。
 - TypeScript**言語**自体（本プロジェクトの実装を理解するために必要な範囲に限る。TypeScriptはJavaScriptのスーパーセットのため、必要な範囲のJavaScript構文・ブラウザAPIも含む）の学習ドキュメントは [docs/typescript/](./docs/typescript/README.md) に整備している（例：ジェネリクス、ユニオン型、非同期処理など）。更新方法は[docs/typescript/README.mdの更新ルール](./docs/typescript/README.md#このドキュメントの更新ルール)を参照。
+- AWSというクラウドサービス自体（本プロジェクトのデプロイに必要な範囲に限る）の学習ドキュメントは [docs/aws/](./docs/aws/README.md) に整備している（例：ルートユーザーとIAM、アクセスキー、リージョン、課金の仕組みなど）。更新方法は[docs/aws/README.mdの更新ルール](./docs/aws/README.md#このドキュメントの更新ルール)を参照。
+- Terraformというツール自体（インフラをコードで記述・構築するための道具）の学習ドキュメントは [docs/terraform/](./docs/terraform/README.md) に整備している（例：IaCの考え方、init/plan/apply、state、バージョン固定など）。更新方法は[docs/terraform/README.mdの更新ルール](./docs/terraform/README.md#このドキュメントの更新ルール)を参照。
 
-フレームワーク・ライブラリの使い方と言語自体の文法のどちらの話か迷ったときは、バックエンドは前者を`docs/spring-boot/`・後者を`docs/java/`に、フロントエンドは前者を`docs/react/`・後者を`docs/typescript/`に書き分ける。
+フレームワーク・ライブラリの使い方と言語自体の文法のどちらの話か迷ったときは、バックエンドは前者を`docs/spring-boot/`・後者を`docs/java/`に、フロントエンドは前者を`docs/react/`・後者を`docs/typescript/`に書き分ける。同じく、AWSというサービスそのものの知識（各サービスの役割・料金・アカウント運用）は`docs/aws/`に、Terraformというツールの知識（文法・ワークフロー・stateの扱い）は`docs/terraform/`に書き分ける。
 
 ## 参考ドキュメント
 
@@ -60,3 +62,5 @@
 - [docs/java/README.md](./docs/java/README.md) — Java言語 学習ドキュメント（本プロジェクトの実装に登場する範囲のJava文法）
 - [docs/react/README.md](./docs/react/README.md) — React 学習ドキュメント（コンポーネント・フック・ルーティングなど）
 - [docs/typescript/README.md](./docs/typescript/README.md) — TypeScript言語 学習ドキュメント（本プロジェクトの実装に登場する範囲のTypeScript・JavaScript文法）
+- [docs/aws/README.md](./docs/aws/README.md) — AWS 学習ドキュメント（アカウント設定・CLI・コスト管理・デプロイ前の宿題）
+- [docs/terraform/README.md](./docs/terraform/README.md) — Terraform 学習ドキュメント（IaCの考え方・ワークフロー・state・運用の決めごと）
