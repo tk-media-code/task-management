@@ -68,6 +68,18 @@ Gradle タスクなどは、ホストではなくコンテナ内で実行して�
 docker exec -w /workspace task-management-backend ./gradlew check
 ```
 
+## AWSへのデプロイ
+
+AWS上に構築する本番環境の構成（EC2 1台 + RDS）はTerraformで定義しており、`infra/` にあります。手順は [infra/README.md](./infra/README.md) を参照してください。
+
+```bash
+terraform -chdir=infra plan     # 何が作られるかを確認する
+terraform -chdir=infra apply    # インフラを構築する
+bash scripts/deploy.sh --all    # アプリを配置する
+```
+
+**課金を止める最も確実な方法はリソースを消すことです。** 使い終わったら `terraform -chdir=infra destroy` を実行してください。消し忘れの確認手順も [infra/README.md](./infra/README.md#片付けdestroy) にまとめています。
+
 ## 開発の進め方
 
 Issue駆動の開発フローを採用しています。ブランチ命名・PR作成・マージ方針などの運用ルールは [CONTRIBUTING.md](./CONTRIBUTING.md) にまとめています。
@@ -91,6 +103,9 @@ backend（Checkstyle・SpotBugs・テスト）と frontend（oxlint・型チェ�
 | [docs/java/](./docs/java/README.md) | Java言語の学習ノート（本プロジェクトの実装に登場する範囲の文法） |
 | [docs/react/](./docs/react/README.md) | React の学習ノート（コンポーネント・フック・ルーティング・ドラッグ＆ドロップなど） |
 | [docs/typescript/](./docs/typescript/README.md) | TypeScript言語の学習ノート（ジェネリクス・ユニオン型・非同期処理など） |
+| [docs/aws/](./docs/aws/README.md) | AWS の学習ノート（アカウント設定・コスト管理・デプロイ構成） |
+| [docs/terraform/](./docs/terraform/README.md) | Terraform の学習ノート（IaC の考え方・state・ワークフロー） |
+| [infra/README.md](./infra/README.md) | AWS環境の構築とデプロイの手順書 |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | 開発運用ルール（ブランチ・PR・品質チェック・CI） |
 | [CLAUDE.md](./CLAUDE.md) | Claude Code で作業する際のガイド |
 
@@ -102,6 +117,7 @@ backend（Checkstyle・SpotBugs・テスト）と frontend（oxlint・型チェ�
 ├── frontend/         React + TypeScript アプリケーション（SPA）
 ├── db/seed/          DB初回起動時に流し込む初期データ
 ├── docs/             要件定義書と学習ドキュメント
+├── infra/            AWS環境のTerraform構成
 ├── prototype/        要件確認用のモック（HTML/CSS/JSのみ。本番実装ではありません）
 ├── prompt-logs/      開発中のやり取りの記録
 ├── scripts/          品質チェックなどの開発用スクリプト

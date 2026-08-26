@@ -139,6 +139,66 @@ psql -h <RDSのホスト名> -U taskuser -d taskmanagement -c 'select version();
 
 ---
 
+## アプリケーションの配置
+
+インフラが構築できたら、`scripts/deploy.sh` でアプリを配置します。
+
+```bash
+bash scripts/deploy.sh --all     # 画面とAPIをまとめて配置する
+bash scripts/deploy.sh --web     # 画面とnginx設定だけ
+bash scripts/deploy.sh --backend # APIコンテナだけ
+bash scripts/deploy.sh --seed    # ダミーデータを投入する（既存データは消える）
+```
+
+接続先のIPアドレスやDBのパスワードは `terraform output` から自動で読み取るため、手で打ち込む必要はありません。
+
+### ビルドをローカルで行う理由
+
+EC2はt3.micro（メモリ1GB）で、GradleもViteもビルドに1GB前後を要求するため、**サーバー上ではビルドできません**。ローカルでビルドし、成果物だけを転送します。
+
+| 対象 | 転送するもの | 手段 |
+| --- | --- | --- |
+| frontend | `dist/`（数MB） | `rsync --delete` |
+| backend | Dockerイメージ（圧縮後およそ170MB） | `docker save \| ssh 'docker load'` |
+
+ECRを使っていないのは、この方法で足りるためです。使う場合はECRリポジトリとIAMインスタンスプロファイルの作成が追加で必要になります。
+
+なお、フロントエンドのビルドは**コンテナ内**で実行します（`docker exec ... npm run build`）。`frontend/dist/` はコンテナが作ったディレクトリでroot所有のため、ホスト側から書き込めないためです。
+
+### 投入する順序
+
+**`--seed` は必ず `--backend` の後に実行してください。**
+
+`db/seed/dummy-data.sql` はDMLだけを含んでおり、テーブルを作りません。テーブルは backend の起動時に `spring.jpa.hibernate.ddl-auto=update` が作るため、先にコンテナを起動しておく必要があります。順序を逆にすると `relation "board" does not exist` で失敗します。
+
+`--all` に `--seed` を含めていないのは、このSQLが冒頭で `TRUNCATE` を実行し、既存のデータをすべて消すためです。
+
+### 配置後の確認
+
+```bash
+IP=$(terraform -chdir=infra output -raw ec2_public_ip)
+
+curl -s -o /dev/null -w '%{http_code}\n' "http://$IP/"           # 200
+curl -s -o /dev/null -w '%{http_code}\n' "http://$IP/boards/1"   # 200（SPAフォールバック）
+curl -s "http://$IP/actuator/health"                              # {"status":"UP"}
+curl -s "http://$IP/api/boards"                                   # ボードのJSON
+curl --max-time 5 "http://$IP:8080/"                              # 接続不可であること
+```
+
+**`/boards/1` への直接アクセスは必ず確認してください。** SPAフォールバックの設定を忘れると、「トップページから画面遷移する分には動くのに、その画面でリロードすると404になる」という分かりにくい壊れ方をします。
+
+### うまくいかないときは
+
+| 症状 | 確認すること |
+| --- | --- |
+| 502 Bad Gateway | コンテナが起動しているか。`docker logs task-management-backend` |
+| APIだけ404 | nginxの `proxy_pass` の末尾にスラッシュが付いていないか |
+| 既定のページが出る | `/etc/nginx/nginx.conf` が置き換わっているか。`sudo nginx -t` |
+| リロードで404 | SPAフォールバック（`try_files`）の設定 |
+| 画面が古いまま | `index.html` のキャッシュ。ハードリロードで確認する |
+
+---
+
 ## 片付け（destroy）
 
 **課金を止める最も確実な方法は、リソースを消すことです。**
