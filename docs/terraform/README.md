@@ -21,8 +21,9 @@
 | 5〜8章 | インストールと基本ワークフロー | [02-install-and-workflow.md](./02-install-and-workflow.md) |
 | 9〜12章 | state という中核概念 | [03-state.md](./03-state.md) |
 | 13〜16章 | このプロジェクトでの決めごと | [04-project-conventions.md](./04-project-conventions.md) |
+| 17〜22章 | 実際に書いてみて分かったこと | [05-writing-the-stack.md](./05-writing-the-stack.md) |
 
-> **インフラ構成（アーキテクチャ）はまだ決めていません。** そのため `infra/` 配下の実際の `.tf` ファイルはまだ作っていません。本書は「構成が決まったときに、安全に書き始められる状態」を作るための準備です。
+> **`infra/` に実際の `.tf` を作成しました。** 1〜16章は「Terraformとは何か・どう使うか」という準備を、17〜22章は「実際に書いてみて分かったこと」を扱います。実装は [infra/](../../infra/README.md) にあります。
 
 ## 目次
 
@@ -42,6 +43,12 @@
 14. [.gitignoreに入れるもの](./04-project-conventions.md#14-gitignoreに入れるもの)
 15. [変数の渡し方と機密情報](./04-project-conventions.md#15-変数の渡し方と機密情報)
 16. [AIにTerraformを書かせるときの安全策](./04-project-conventions.md#16-aiにterraformを書かせるときの安全策)
+17. [data ソース](./05-writing-the-stack.md#17-data-ソース)
+18. [リソース間の参照と依存関係](./05-writing-the-stack.md#18-リソース間の参照と依存関係)
+19. [段階的なapplyの実践](./05-writing-the-stack.md#19-段階的なapplyの実践)
+20. [file と templatefile、そして user_data](./05-writing-the-stack.md#20-file-と-templatefileそして-user_data)
+21. [機密情報の扱い（実践編）](./05-writing-the-stack.md#21-機密情報の扱い実践編)
+22. [default_tags と後片付け](./05-writing-the-stack.md#22-default_tags-と後片付け)
 
 ---
 
@@ -170,6 +177,54 @@ Terraformのコードをリポジトリ内の `infra/` に置く理由（アプ�
 インフラのコードは間違えると課金とデータ損失に直結します。**`plan` の出力を人間が読むことが唯一かつ最大の安全弁**であること、`-auto-approve` を使わないこと、`prevent_destroy` で守ること、段階的に `apply` すること、そしてコンソールでの手作業を混ぜないことを扱います。
 
 📄 詳細：[04-project-conventions.md](./04-project-conventions.md#16-aiにterraformを書かせるときの安全策)
+
+---
+
+## 17. data ソース
+
+「作る」のではなく「既にあるものを調べる」ブロックです。AMI IDをコードに直接書かない理由と、**`most_recent = true` が招く「applyのたびにインスタンスが作り直される」問題**、そしてそれを止める `lifecycle { ignore_changes }` を扱います。
+
+📄 詳細：[05-writing-the-stack.md](./05-writing-the-stack.md#17-data-ソース)
+
+---
+
+## 18. リソース間の参照と依存関係
+
+`aws_vpc.main.id` と書くだけで実行順序が決まる仕組み（暗黙の依存関係）と、依存関係のないリソースが並列に作られること、`depends_on` を多用しないほうがよい理由を扱います。
+
+📄 詳細：[05-writing-the-stack.md](./05-writing-the-stack.md#18-リソース間の参照と依存関係)
+
+---
+
+## 19. 段階的なapplyの実践
+
+`.tf` ファイルを1つずつ足していけば、それがそのまま段階的なapplyになります。**`-target` を使わない理由**と、`plan` 出力の読み方（`+`・`~`・`-`・`-/+` の意味）、そして**ネットワークとセキュリティグループの段階は課金がゼロ**なので `plan` を読む練習に適していることを扱います。実際の構築記録も載せています。
+
+📄 詳細：[05-writing-the-stack.md](./05-writing-the-stack.md#19-段階的なapplyの実践)
+
+---
+
+## 20. file と templatefile、そして user_data
+
+**`file("~/...")` が展開されずエラーになる**こと（`pathexpand()` が必要）と、**user_dataは変更しても反映されない**という最も分かりにくい挙動、そしてそれを可視化する `user_data_replace_on_change` を扱います。設定ファイルをTerraformに持たせるか別経路で配るかの判断基準（変更の頻度）も整理しています。
+
+📄 詳細：[05-writing-the-stack.md](./05-writing-the-stack.md#20-file-と-templatefileそして-user_data)
+
+---
+
+## 21. 機密情報の扱い（実践編）
+
+[12章](./03-state.md#12-stateに機密が平文で入るということ)で扱った「stateに平文で入る」を実際に確認し、`sensitive` なoutputを `terraform output -raw` でスクリプトから読む使い方とその是非、**`tls_private_key` を使ってはいけない理由**、そして `validation` で危険な値を機械的に弾く方法を扱います。
+
+📄 詳細：[05-writing-the-stack.md](./05-writing-the-stack.md#21-機密情報の扱い実践編)
+
+---
+
+## 22. default_tags と後片付け
+
+プロバイダの `default_tags` で全リソースにタグが付く仕組みと、**それがdestroy後の「消し忘れ探し」に効く**こと、destroyの手順と確認すべき対象、そして**「一緒に消えてよいか」でstateを分ける**という判断基準を扱います。
+
+📄 詳細：[05-writing-the-stack.md](./05-writing-the-stack.md#22-default_tags-と後片付け)
 
 ---
 

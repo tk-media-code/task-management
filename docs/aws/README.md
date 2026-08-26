@@ -21,8 +21,9 @@
 | 5〜8章 | AWS CLIのセットアップ（WSL2へのインストール・認証情報・疎通確認） | [02-cli-setup.md](./02-cli-setup.md) |
 | 9〜12章 | コスト管理と課金事故の防止 | [03-cost-management.md](./03-cost-management.md) |
 | 13〜17章 | このアプリをデプロイする前の宿題リスト | [04-deploy-checklist.md](./04-deploy-checklist.md) |
+| 18〜22章 | 実際に採用したデプロイ構成（EC2 + RDS） | [05-deploy-architecture.md](./05-deploy-architecture.md) |
 
-> **インフラ構成（アーキテクチャ）はまだ決めていません。** どのサービスの上でアプリを動かすかは課題の進行にあわせて決める方針のため、本書では構成の比較・選定を扱っていません。13〜17章は「どの構成を選んでも必要になる準備」だけをまとめています。
+> **インフラ構成は EC2 1台 + RDS に決定しました（18章）。** 13〜17章は「どの構成を選んでも必要になる準備」を、18〜22章は「実際に採用した構成」を扱います。実装は [infra/](../../infra/README.md) にあります。
 
 ## 目次
 
@@ -43,6 +44,11 @@
 15. [ベーシック認証とHTTPSをどこで満たすか](./04-deploy-checklist.md#15-ベーシック認証とhttpsをどこで満たすか)
 16. [DBスキーマ管理をどうするか](./04-deploy-checklist.md#16-dbスキーマ管理をどうするか)
 17. [コンテナイメージの前提](./04-deploy-checklist.md#17-コンテナイメージの前提)
+18. [今回のデプロイ構成](./05-deploy-architecture.md#18-今回のデプロイ構成)
+19. [VPC・サブネット・セキュリティグループ](./05-deploy-architecture.md#19-vpcサブネットセキュリティグループ)
+20. [EC2](./05-deploy-architecture.md#20-ec2)
+21. [RDS](./05-deploy-architecture.md#21-rds)
+22. [要件定義8.2を実装しなかった判断](./05-deploy-architecture.md#22-要件定義82を実装しなかった判断)
 
 ---
 
@@ -179,6 +185,46 @@ NAT Gateway・ロードバランサ・パブリックIPv4アドレス・消し�
 `backend/Dockerfile` のマルチステージ構成、起動に必須の環境変数（`DB_URL`・`DB_USERNAME`・`DB_PASSWORD`）と本番で `SPRING_PROFILES_ACTIVE` を渡してはいけない理由、CPUアーキテクチャの不一致による事故、そしてフロントエンドの本番用イメージが未整備であることを扱います。
 
 📄 詳細：[04-deploy-checklist.md](./04-deploy-checklist.md#17-コンテナイメージの前提)
+
+---
+
+## 18. 今回のデプロイ構成
+
+EC2を1台だけ立て、その中でホストのnginxとバックエンドのコンテナを動かす構成を採用しました。フロントエンドをコンテナ化しなかった理由と、**採用しなかった構成（NAT Gateway・ALB・Elastic IP・ECR）それぞれの月額**を整理し、「数日で消す前提」がこの構成選択を正当化していることを示します。
+
+📄 詳細：[05-deploy-architecture.md](./05-deploy-architecture.md#18-今回のデプロイ構成)
+
+---
+
+## 19. VPC・サブネット・セキュリティグループ
+
+パブリックとプライベートの違いが「`0.0.0.0/0` のルートがIGWを向いているかどうか」だけであること、**NAT Gatewayが無くてもRDSが動く理由**、RDSのサブネットグループが2AZ必須で片方は空でよいこと、そしてセキュリティグループがステートフルであることと送信元にSGを指定できることを扱います。**ルールの `description` に日本語が使えない**という実際に踏んだ罠も記録しています。
+
+📄 詳細：[05-deploy-architecture.md](./05-deploy-architecture.md#19-vpcサブネットセキュリティグループ)
+
+---
+
+## 20. EC2
+
+AMIとインスタンスタイプの読み方、**T3の既定が `unlimited` でクレジット超過時に追加課金される**こと、キーペアの仕組み、user_dataとcloud-initの「一度しか実行されない」性質、IMDSv2、パブリックIPv4の課金、そしてt3.microのメモリ1GBという制約とその対処（スワップ）を扱います。**東京リージョンの1bではt3.microが使えない**という実測結果も載せています。
+
+📄 詳細：[05-deploy-architecture.md](./05-deploy-architecture.md#20-ec2)
+
+---
+
+## 21. RDS
+
+マネージドサービスが何を代行するのか、エンジンバージョンをメジャーだけ指定する理由、**RDSではGravitonを選べる理由**（EC2と違いアプリのイメージと無関係なため）、`publicly_accessible` がSGの代わりではないこと、そしてコストとdestroyの確実性のための設定が何を捨てているのかを扱います。
+
+📄 詳細：[05-deploy-architecture.md](./05-deploy-architecture.md#21-rds)
+
+---
+
+## 22. 要件定義8.2を実装しなかった判断
+
+ベーシック認証とHTTPSを今回実装しなかった判断と、それによって何が起きうるか、実施している緩和策、そして**「要件を実装しないと決めたときは、その判断を記録に残す」**という考え方を扱います。将来実装する場合の選択肢も整理しています。
+
+📄 詳細：[05-deploy-architecture.md](./05-deploy-architecture.md#22-要件定義82を実装しなかった判断)
 
 ---
 
