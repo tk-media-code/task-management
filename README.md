@@ -50,7 +50,17 @@ docker compose up -d
 | バックエンド | http://localhost:8080 | REST API（`/api/...`） |
 | CloudBeaver | http://localhost:8978 | ブラウザからDBの中身を確認するためのGUI |
 
-初期データ（サンプルのボード・カード・ラベル）は `db/seed/` のSQLがDBの初回起動時に自動で投入します。
+### サンプルデータを投入する
+
+起動直後のデータベースは空です。動作を確認しやすくするため、サンプルのボード・カード・ラベルを投入できます。
+
+```bash
+docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/seed/dummy-data.sql
+```
+
+**バックエンドが一度起動した後に実行してください。** テーブルを作るのはバックエンド起動時の `spring.jpa.hibernate.ddl-auto=update` であり、このSQLはデータの投入だけを行うためです。テーブルが無い状態で実行すると `relation "board" does not exist` で失敗します。
+
+なお、このSQLは冒頭で既存データを削除するため、**何度実行しても同じ状態になります**（投入し直したいときにそのまま再実行できます）。
 
 ```bash
 # 停止する
@@ -115,7 +125,7 @@ backend（Checkstyle・SpotBugs・テスト）と frontend（oxlint・型チェ�
 .
 ├── backend/          Spring Boot アプリケーション（REST API）
 ├── frontend/         React + TypeScript アプリケーション（SPA）
-├── db/seed/          DB初回起動時に流し込む初期データ
+├── db/seed/          動作確認用のサンプルデータ（手動で投入する）
 ├── docs/             要件定義書と学習ドキュメント
 ├── infra/            AWS環境のTerraform構成
 ├── prototype/        要件確認用のモック（HTML/CSS/JSのみ。本番実装ではありません）
