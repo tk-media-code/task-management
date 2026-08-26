@@ -1,0 +1,8 @@
+# このファイルを terraform.tfvars にコピーして、実際の値を記入する。
+# terraform.tfvars は .gitignore 済みでコミットされない。
+
+# 予算アラートの通知先。ここに届いたメールで課金の異常に気づく。
+budget_notification_email = "you@example.com"
+
+# 月あたりの予算額（USD）。既定は10。
+# budget_limit_usd = "10"

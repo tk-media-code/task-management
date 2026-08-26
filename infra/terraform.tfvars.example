@@ -1,0 +1,15 @@
+# このファイルを terraform.tfvars にコピーして、実際の値を記入する。
+# terraform.tfvars は .gitignore 済みでコミットされない。
+
+# SSHを許可する送信元。自分のグローバルIPに /32 を付ける。
+# 確認方法: curl -s https://checkip.amazonaws.com
+ssh_allowed_cidr = "203.0.113.1/32"
+
+# RDSのマスターパスワード。英数字のみ16〜41文字。
+# 生成方法: openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 24
+db_password = "CHANGE_ME_alnum_only_16_to_41"
+
+# HTTPを許可する送信元。既定は全開放。
+# ベーシック認証もHTTPSも実装していないため、人に見せる必要がない間は
+# 自分のIPだけに絞っておくとよい。
+# http_allowed_cidrs = ["203.0.113.1/32"]
