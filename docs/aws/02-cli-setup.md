@@ -37,16 +37,76 @@ curl -fsSL https://awscli.amazonaws.com/v2/install.sh | sudo bash -s -- --system
 > sudo ./aws/install
 > ```
 
-### 5.3 確認と更新
+### 5.3 スクリプトをパイプで直接実行しない
+
+上のコマンドは `curl ... | bash` の形になっており、**ダウンロードしたものを中身を見ないまま実行する**ことになる。配布元が公式であっても、実行前に一度保存して目を通す習慣をつけたほうがよい。
+
+```bash
+curl -fsSL https://awscli.amazonaws.com/v2/install.sh -o aws-install.sh
+less aws-install.sh    # 何をするスクリプトかを確認する
+bash aws-install.sh
+```
+
+このスクリプトは、**ダウンロードしたzipのPGP署名を検証してからインストールする**（AWSの公開鍵がスクリプト内に直接埋め込まれており、外部から鍵を取りに行かない）。成功すると次の行が出る。
+
+```
+GPG signature verified.
+```
+
+ただし**`gpg` コマンドが入っていない環境では、検証をスキップして警告を出すだけで先に進む**。
+
+```
+gpg not found; skipping signature verification. Install gnupg for stronger verification.
+```
+
+「エラーにならない」ため見落としやすい。**先に `gpg`（`gnupg` パッケージ）を入れておくこと。**
+
+### 5.4 どこに何が入るのか
+
+`--system` を付けない場合、インストール先は**XDG Base Directory仕様**に従った次の場所になる。
+
+| 場所 | 中身 |
+| --- | --- |
+| `~/.local/share/aws-cli` | 本体（Pythonランタイムを同梱するため**271MBほどある**） |
+| `~/.local/bin/aws` | 本体へのシンボリックリンク。実際に呼ばれるのはこれ |
+| `~/.local/bin/aws_completer` | シェル補完用。同じくシンボリックリンク |
+
+```bash
+$ ls -l ~/.local/bin/aws
+lrwxrwxrwx ... /home/tokuoka/.local/bin/aws -> /home/tokuoka/.local/share/aws-cli/v2/current/bin/aws
+```
+
+Ubuntuの `~/.profile` には「`~/.local/bin` が存在すればPATHに追加する」という記述が最初から入っているため、**PATHの設定は不要**なことが多い。`which aws` が何も返さない場合のみ、ログインし直すかPATHに追加する。
+
+インストール時の情報は `install.json` に記録され、次節の `aws update` がこれを読んで「どこに・どの方式で入れたか」を判別する。
+
+```json
+{
+  "distribution_source": "script-exe",
+  "install_dir": "/home/tokuoka/.local/share/aws-cli",
+  "bin_dir": "/home/tokuoka/.local/bin",
+  "script_install": { "system": false, "version_resolved": "2.36.31", "quiet": false }
+}
+```
+
+### 5.5 確認と更新
 
 ```bash
 aws --version
-# aws-cli/2.36.28 Python/3.13.4 Linux/5.15.167.4-microsoft-standard-WSL2 exe/x86_64
+# aws-cli/2.36.31 Python/3.14.6 Linux/5.15.167.4-microsoft-standard-WSL2 script-exe/x86_64.ubuntu.22
 ```
 
-更新は `aws update` で行う（インストール時にsudoを使った場合は更新時もsudoが要る）。
+末尾の `script-exe` は**インストール方式**を表す。zipを展開する従来方式なら `exe`、このインストールスクリプト経由なら `script-exe` になる。
 
-> 上記のバージョン番号は本ドキュメント作成時点（2026-08-21）に確認した最新版であり、参考値である。実際にインストールした時点の最新版が入る。
+更新は `aws update` で行う。前節の `install.json` を読んで、**最初と同じ方式・同じ場所**に最新版を入れ直すため、ユーザーインストールなら更新時もsudoは不要である（`--system` で入れた場合は更新時もsudoが要る）。
+
+```bash
+aws update
+```
+
+同じバージョンが既に入っている場合は `nothing to do.` と表示して何もしない。なお、install.shを再実行しても更新になる（新しいバージョンがあれば `Installing AWS CLI 2.36.31 → 2.37.0` のように差分が表示される）が、**ダウングレードは拒否される**。
+
+> 上記のバージョン番号は2026-08-26に実際にインストールしたときの値である。実行した時点の最新版が入るため、同じにはならない。
 
 ---
 
@@ -134,6 +194,38 @@ AWS CLIとTerraformは、認証情報を次の優先順位で探す。上にあ�
 4. EC2インスタンスプロファイル／ECSタスクロール（AWS上で動いている場合）
 
 「設定したはずのキーと違うものが使われている」ときは、**環境変数が残っていないか**をまず疑う。4番目は、AWS上で動くアプリが**アクセスキーを一切持たずに**AWSのAPIを呼べる仕組みで、本番環境では原則こちらを使う（キーを配置しなくてよいぶん、漏洩の可能性そのものが無くなる）。
+
+### 6.6 AIエージェントに認証情報を扱わせない
+
+本プロジェクトはClaude Codeを使って開発しており、AIがシェルコマンドを実行する場面が多い。そのなかで、**`aws configure` によるキーの登録だけは人間が自分の手で実行する。**
+
+理由は[3.3の鉄則](./01-account-setup.md#33-取り扱いの鉄則)そのものである。AIにキーを設定させるには、プロンプトに書くか、AIが実行するコマンドの引数に書くしかない。どちらも**会話ログに平文で残る**。ログの保存先や保存期間を自分で管理できない以上、「渡さない」以外に安全側の選択肢がない。
+
+一方、**設定済みかどうかの確認はAIに任せてよい。** `aws configure list` はキーを末尾4文字しか表示しないためである。
+
+```bash
+$ aws configure list
+      Name       : Value              : Type                    : Location
+   access_key    : ****************UXNP : shared-credentials-file :
+   secret_key    : ****************b2oQ : shared-credentials-file :
+       region    : ap-northeast-1     : config-file             : ~/.aws/config
+```
+
+疎通確認に使う `aws sts get-caller-identity`（[7章](#7-疎通確認)）は12桁のアカウントIDを出力する。アカウントIDは単体で悪用できるものではないが、会話ログに残したくない場合は伏せて実行できる。
+
+```bash
+aws sts get-caller-identity --output json | sed -E 's/[0-9]{12}/<ACCOUNT_ID>/g'
+```
+
+```json
+{
+    "UserId": "AIDA...",
+    "Account": "<ACCOUNT_ID>",
+    "Arn": "arn:aws:iam::<ACCOUNT_ID>:user/admin"
+}
+```
+
+これでも**「ルートではなくIAMユーザーとして認証されているか」は `Arn` の末尾で確認できる**ため、確認の目的は達せられる。意図したアカウントかどうかだけは、末尾数桁を突き合わせるなどして人間が判断する。
 
 ---
 

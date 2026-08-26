@@ -32,17 +32,84 @@ sudo apt update && sudo apt install -y terraform
 
 `$(lsb_release -cs)` はUbuntuのコードネームに展開される（Ubuntu 22.04なら `jammy`）。`lsb_release` が無い環境では `sudo apt install -y lsb-release` を先に実行するか、`jammy` を直接書く。
 
-### 5.2 確認
+### 5.2 sudoが必要なので、AIエージェントには任せられない
+
+上の4行はすべて `sudo` を伴う。**`sudo` がパスワードを要求する設定の環境では、AIエージェント（Claude Code）のシェルからは実行できない。** パスワードプロンプトが出た時点で入力する相手がおらず、コマンドが停止するためである。
+
+したがって、この手順だけは**人間が自分のターミナルで実行する**。AWS CLIのインストール（[docs/aws/02-cli-setup.md 5.2](../aws/02-cli-setup.md#52-インストール)）が `sudo` 不要のユーザーインストールを選べるのとは対照的で、aptを使う以上ここは避けられない。
+
+> パスワードなしで `sudo` が使える設定（`NOPASSWD`）にすればAIからも実行できるが、**そのために `sudo` の保護を外すのは本末転倒**である。年に数回のインストール作業のために、常時の安全性を下げる取引になる。
+
+### 5.3 確認
 
 ```bash
+which terraform
+# /usr/bin/terraform
+
 terraform version
 # Terraform v1.15.9
 # on linux_amd64
 ```
 
-> 上記のバージョン番号は本ドキュメント作成時点（2026-08-21）に確認した最新版であり、参考値である。
+aptで入れたので、配置先は `/usr/bin/terraform`（全ユーザーが使える場所）になる。
 
-### 5.3 複数バージョンを使い分けたくなったら
+> 上記は2026-08-26に実際にインストールしたときの値である。
+
+### 5.4 インストール直後の疎通確認
+
+「入った」ことと「使える」ことは別である。**AWSの認証情報がTerraformからも読めているか**は、リソースを作らずに確認できる。作業用の一時ディレクトリ（リポジトリの外）に、次の1ファイルだけを置く。
+
+```hcl
+# main.tf
+terraform {
+  required_version = "~> 1.15"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+  }
+}
+
+provider "aws" {
+  # リージョンはコードに固定する。認証情報は書かない（7章）
+  region = "ap-northeast-1"
+}
+
+# 読み取り専用のdataソース。「いま自分が誰として認証されているか」を問い合わせるだけで、
+# 何も作らず何も変更しない。aws sts get-caller-identity のTerraform版にあたる
+data "aws_caller_identity" "current" {}
+
+output "caller_arn" {
+  value = data.aws_caller_identity.current.arn
+}
+```
+
+```bash
+terraform init
+terraform plan
+```
+
+`plan` が次のように応答すれば、**Terraform経由でもAWSのAPIを呼べている**ことになる。
+
+```
+data.aws_caller_identity.current: Read complete after 0s [id=<ACCOUNT_ID>]
+
+Changes to Outputs:
+  + caller_arn = "arn:aws:iam::<ACCOUNT_ID>:user/admin"
+
+You can apply this plan to save these new output values to the Terraform
+state, without changing any real infrastructure.
+```
+
+`without changing any real infrastructure`（実インフラは何も変わらない）と明記される点が重要で、**この構成には `resource` が1つも無いため、`apply` してもAWSには何も作られない**。確認はここで止め、`apply` はしない。
+
+> **`cd` せずに実行する方法。** `terraform -chdir=<ディレクトリ> plan` と書くと、そのディレクトリで実行したのと同じ結果になる。別の場所から実行するときに、ディレクトリを移動し忘れて**意図しない構成に対して操作してしまう事故**を防げる。
+
+確認が済んだら一時ディレクトリごと削除してよい。ただし **`terraform init` が作る `.terraform/` は非常に大きい**（AWSプロバイダだけで実測846MB）。[14章](./04-project-conventions.md#14-gitignoreに入れるもの)で `.gitignore` に入れているのは、これをコミットしてしまう事故を防ぐためである。
+
+### 5.5 複数バージョンを使い分けたくなったら
 
 プロジェクトごとにTerraformのバージョンを固定したい場合は、`tfenv`（バージョン管理ツール）を使う方法がある。本プロジェクトはTerraformを使うのが初めてで、扱うバージョンも1つなので、当面はaptで入れた1つで足りる。
 
@@ -212,6 +279,40 @@ terraform {
 ```bash
 terraform init -upgrade
 ```
+
+### 8.3 Terraform本体が勝手に上がらないようにする
+
+8.1・8.2で縛れるのは**プロバイダ**と「本体に求めるバージョンの範囲」であって、**手元に入っているTerraform本体そのもの**ではない。aptで入れた場合、普段の更新作業に巻き込まれて上がる。
+
+```bash
+sudo apt upgrade    # ここでTerraformも一緒に上がりうる
+```
+
+これが問題になるのは、Terraformに**ダウングレードできない**性質があるためである。
+
+- stateファイルには、それを最後に書いたTerraformのバージョンが記録される
+- **新しいバージョンで一度 `apply` すると、stateが新しい形式で書かれる**
+- その後、古いバージョンで `plan` しようとすると「stateが新しすぎる」と言われて実行を拒否される
+
+つまり「上げてみて、合わなかったら戻す」ができない。**上げた瞬間が後戻りできない地点**になる。
+
+意図せず上がることを防ぐには、aptの更新対象から外す。
+
+```bash
+sudo apt-mark hold terraform     # 固定する
+sudo apt-mark showhold           # 固定されているものを確認する
+sudo apt-mark unhold terraform   # 上げたくなったら解除する
+```
+
+`required_version` との役割の違いを整理すると次のようになる。両方あって初めて「意図しないバージョンで動かない」状態になる。
+
+| 仕組み | 何を防ぐか |
+| --- | --- |
+| `apt-mark hold` | **手元のTerraformが勝手に上がること**を防ぐ |
+| `required_version` | 制約を満たさないバージョンで**実行されること**を防ぐ（上がってしまった後の最後の砦） |
+| `.terraform.lock.hcl` | **プロバイダ**のバージョンが端末ごとにばらつくことを防ぐ |
+
+> 本プロジェクトは端末1台・利用者1人なので、実害が出る場面は限られる。ただし「`apply` した後は戻せない」という性質は、複数人・CIが絡んだ瞬間に効いてくる。**上げるときは、上げると決めて上げる**のが原則である。
 
 ---
 

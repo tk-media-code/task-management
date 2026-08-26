@@ -79,7 +79,7 @@ CloudFormation・AWS CDK・OpenTofuとの比較。学習情報の量とマルチ
 
 ## 5. WSL2へのインストール
 
-HashiCorp公式のaptリポジトリを登録してインストールする手順（GPG鍵の登録から）。Ubuntuの標準リポジトリにTerraformが無いこと、複数バージョンを使い分けたくなった場合の選択肢にも触れます。
+HashiCorp公式のaptリポジトリを登録してインストールする手順（GPG鍵の登録から）。Ubuntuの標準リポジトリにTerraformが無いこと、**`sudo` を伴うためAIエージェントには任せられない**こと、リソースを作らずにAWSとの疎通を確認する方法、複数バージョンを使い分けたくなった場合の選択肢を扱います。
 
 📄 詳細：[02-install-and-workflow.md](./02-install-and-workflow.md#5-wsl2へのインストール)
 
@@ -103,7 +103,7 @@ HashiCorp公式のaptリポジトリを登録してインストールする手�
 
 ## 8. バージョンの固定
 
-`required_version` / `required_providers` による制約の書き方と、`~>`（悲観的バージョン制約）の意味。`.terraform.lock.hcl` を**コミットする**理由（`package-lock.json` と同じ役割）を扱います。
+`required_version` / `required_providers` による制約の書き方と、`~>`（悲観的バージョン制約）の意味。`.terraform.lock.hcl` を**コミットする**理由（`package-lock.json` と同じ役割）、そして**Terraform本体はダウングレードできない**ため `apt upgrade` で勝手に上がらないよう固定する運用を扱います。
 
 📄 詳細：[02-install-and-workflow.md](./02-install-and-workflow.md#8-バージョンの固定)
 
