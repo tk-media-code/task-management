@@ -271,6 +271,6 @@ Failed to parse oxlint configuration file.
 
 oxlintは既定で「`warn`扱いの指摘だけが残っている状態」を失敗として扱いません（終了コード0）。`--deny-warnings`オプションを付けると、この挙動を変えて`warn`扱いの指摘（`suspicious`カテゴリや上記8件を含む）も失敗として扱えます。
 
-このoxlintの実行は、現在はCIではなく**push前のローカルチェック**（`scripts/quality-check.sh`。Claude Code利用時は`.claude/hooks/pre-push-quality-check.sh`が`git push`実行前に自動で呼び出す）が担っています。CIはPRを作成した「後」にしか走らず問題に気づくタイミングとして遅いため、静的解析はpush前チェック側に寄せ、CIは`tsc -b && vite build`が通ることの確認に絞っています（詳しい経緯は[CONTRIBUTING.md 5章](../../CONTRIBUTING.md#5-push前の品質チェック)参照）。
+このoxlintの実行は、現在はCIではなく**push前のローカルチェック**（`scripts/quality-check.sh`。Claude Code / Cursor 利用時はガードフック（`.claude/hooks/guard.cjs` / `.cursor/hooks/guard.cjs`）が`git push`実行前に自動で呼び出す）が担っています。CIはPRを作成した「後」にしか走らず問題に気づくタイミングとして遅いため、静的解析はpush前チェック側に寄せ、CIは`tsc -b && vite build`が通ることの確認に絞っています（詳しい経緯は[CONTRIBUTING.md 5章](../../CONTRIBUTING.md#5-push前の品質チェック)参照）。
 
 [CONTRIBUTING.md 5章](../../CONTRIBUTING.md#5-push前の品質チェック)の方針では、上記8件（`jsx-a11y`の6件はIssue #66、`promise`の2件はIssue #73で管理）が解消されるまでの間は`--deny-warnings`を付けず、まずerror（`correctness`カテゴリと、上で有効化した`react-hooks/exhaustive-deps`。現状0件）のみでゲートしています。指摘を1件ずつ解消し終えたら`scripts/quality-check.sh`内の`OXLINT_ARGS`に`--deny-warnings`を付け、以後の新しい警告もpush前チェックで検出できる状態へ引き上げる想定です。

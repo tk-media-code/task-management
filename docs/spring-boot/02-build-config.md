@@ -277,7 +277,7 @@ checkstyle {
 ./gradlew spotbugsMain
 ```
 
-**これらはCIでは実行されません。** [CONTRIBUTING.md 5章](../../CONTRIBUTING.md#5-push前の品質チェック)の方針により、push前のローカルチェック（`scripts/quality-check.sh`。Claude Code利用時は`.claude/hooks/pre-push-quality-check.sh`が`git push`実行前に自動で呼び出す）として実行されます。GitHub Actions CI（[6章](../../CONTRIBUTING.md#6-ci自動チェック)）はコンパイルとパッケージングが通ることのみを確認し、静的解析は行いません。PRを作成した「後」にしか走らないCIより、push前に問題を検出する方を主たる品質ゲートに据えているためです。
+**これらはCIでは実行されません。** [CONTRIBUTING.md 5章](../../CONTRIBUTING.md#5-push前の品質チェック)の方針により、push前のローカルチェック（`scripts/quality-check.sh`。Claude Code / Cursor 利用時はガードフック（`.claude/hooks/guard.cjs` / `.cursor/hooks/guard.cjs`）が`git push`実行前に自動で呼び出す）として実行されます。GitHub Actions CI（[6章](../../CONTRIBUTING.md#6-ci自動チェック)）はコンパイルとパッケージングが通ることのみを確認し、静的解析は行いません。PRを作成した「後」にしか走らないCIより、push前に問題を検出する方を主たる品質ゲートに据えているためです。
 
 ---
 
