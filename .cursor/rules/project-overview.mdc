@@ -17,4 +17,4 @@ alwaysApply: true
 - `docs/requirements.md` — 要件定義書
 - `docs/spring-boot/` / `docs/java/` — バックエンド学習ドキュメント
 - `docs/react/` / `docs/typescript/` — フロントエンド学習ドキュメント
-- `CLAUDE.md` — Claude Code 向けガイド（方針の正本。本 Rules は Cursor 向けに同等内容を適用）
+- `CLAUDE.md` — 両ツールが読むプロジェクト固有ガイド。本 Rules は概要の短い索引

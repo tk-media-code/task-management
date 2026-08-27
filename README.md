@@ -117,7 +117,7 @@ backend（Checkstyle・SpotBugs・テスト）と frontend（oxlint・型チェ�
 | [docs/terraform/](./docs/terraform/README.md) | Terraform の学習ノート（IaC の考え方・state・ワークフロー） |
 | [infra/README.md](./infra/README.md) | AWS環境の構築とデプロイの手順書 |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | 開発運用ルール（ブランチ・PR・品質チェック・CI） |
-| [CLAUDE.md](./CLAUDE.md) | Claude Code で作業する際のガイド |
+| [CLAUDE.md](./CLAUDE.md) | Claude Code と Cursor 向けのプロジェクト固有ガイド |
 
 ## ディレクトリ構成
 
