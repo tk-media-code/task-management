@@ -10,7 +10,7 @@ argument-hint: "[backend|frontend]"
 
 `.github/workflows/ci.yml` はビルド（コンパイル・パッケージング・型チェック）が通ることしか見ない。Checkstyle・SpotBugs・oxlintといった静的解析や、backendの既存テストは、**push前のこの手順が唯一の検出機会**になる。
 
-`git push` を含むBashコマンドは `.claude/hooks/pre-push-quality-check.sh`（PreToolUseフック）が検知し、このスキルと同じ `scripts/quality-check.sh` を自動実行して失敗時にはpush自体をブロックする。フックに引っかかってから修正するより、push前に自発的にこのスキルを使ってクリーンな状態でpushする方が、往復が1回少なくて済む。フックは最後の砦、このスキルが通常運転という役割分担になる。
+`git push` を含むコマンドはガードフック（Claude Code は `.claude/hooks/guard.cjs`、Cursor は `.cursor/hooks/guard.cjs`。判定は共通の `guard-core.cjs`）が検知し、`scripts/harness-check.sh`（共通チェック）→ このスキルと同じ `scripts/quality-check.sh` の順で自動実行して、失敗時にはpush自体をブロックする。フックに引っかかってから修正するより、push前に自発的にこのスキルを使ってクリーンな状態でpushする方が、往復が1回少なくて済む。フックは最後の砦、このスキルが通常運転という役割分担になる。
 
 ## 実行手順
 
