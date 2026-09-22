@@ -62,7 +62,7 @@
 
 | ツール | 役割 |
 | --- | --- |
-| push前の品質チェック（`scripts/quality-check.sh`） | backendの静的解析・既存テスト、frontendのLint・型チェック・ビルドをまとめて実行する唯一の検出機会。Claude Code / Cursor 利用時はガードフック（`.claude/hooks/guard.cjs` / `.cursor/hooks/guard.cjs`）が`git push`実行前に自動で呼び出し、失敗するとpushをブロックする（[CONTRIBUTING.md 5章](../../CONTRIBUTING.md#5-push前の品質チェック)参照） |
+| push前の品質チェック（`scripts/quality-check.sh`） | backendの静的解析・既存テスト、frontendのLint・型チェック・ビルドをまとめて実行する唯一の検出機会。Claude Code 利用時はガードフック（`.claude/hooks/guard.cjs`）が`git push`実行前に自動で呼び出し、失敗するとpushをブロックする（[CONTRIBUTING.md 5章](../../CONTRIBUTING.md#5-push前の品質チェック)参照） |
 | GitHub Actions（CI） | PRの作成・更新のたびに、backendのコンパイル・パッケージング、frontendの型チェック・ビルドが通ることのみを確認する。静的解析・テストの実行は含まない（[CONTRIBUTING.md 6章](../../CONTRIBUTING.md#6-ci自動チェック)参照） |
 | Bean Validation | リクエストDTO（record）の入力値検証（[9-write-api-validation.md](../spring-boot/09-write-api-validation.md)参照） |
 | javac `-Xlint` / Checkstyle / SpotBugs | バックエンドの静的解析。順に「コンパイラ標準の警告」「ソースコードの見落とし検出」「バイトコードレベルのバグ検出」を担う（[02-build-config.md](../spring-boot/02-build-config.md)参照） |
