@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-このファイルは、Claude Code と Cursor の両方がこのリポジトリで作業する際に読む、プロジェクト固有のガイドです。
+このファイルは、Claude Code がこのリポジトリで作業する際に読む、プロジェクト固有のガイドです。
 
 ## プロジェクト概要
 
@@ -12,7 +12,9 @@
 
 ## 開発フロー
 
-**Issue駆動の開発フローは [.claude/rules/issue-driven-workflow.md](./.claude/rules/issue-driven-workflow.md) が正本。** 全プロジェクト共通のルールとして配布されており、毎セッション自動で読み込まれる（Cursor 用は `.cursor/rules/` に同じ内容がある）。ここには重複して書かない。
+**開発フローは [.claude/rules/development-flow.md](./.claude/rules/development-flow.md) が正本。** 全プロジェクト共通のルールとして配布されており、毎セッション自動で読み込まれる。ここには重複して書かない。
+
+実装依頼は `brainstorming` から入る。設計を詰めて `writing-plans` で計画を書き、`creating-issues` で Issue を立ててからブランチを切る。**Issue 番号を含まないブランチは hook が作成を拒否する。**
 
 人が読む運用ドキュメントは [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
@@ -22,7 +24,7 @@ push前の品質チェックは**2段構え**になっている。`git push` を
 
 | 段 | ファイル | 所有 | 中身 |
 | --- | --- | --- | --- |
-| ① | `scripts/harness-check.sh` | ハーネス（配布物） | 言語非依存。コンフリクトマーカーの残留・秘匿情報の混入・ブランチ名の規約 |
+| ① | `scripts/harness-check.sh` | ハーネス（配布物） | 言語非依存。コンフリクトマーカーの残留・秘匿情報の混入・ブランチ名の規約・ブランチ名の Issue が実在するか |
 | ② | `scripts/quality-check.sh` | このプロジェクト | backend（Checkstyle・SpotBugs・既存テスト）・frontend（oxlint・型チェック・ビルド） |
 
 ①が落ちた時点で②は走らない。**①は書き換えない**（配布物なので、直すと以後の更新が届かなくなる）。
@@ -60,7 +62,7 @@ push前の品質チェックは**2段構え**になっている。`git push` を
 
 ## 参考ドキュメント
 
-- [.claude/rules/issue-driven-workflow.md](./.claude/rules/issue-driven-workflow.md) — 開発フローの正本（全プロジェクト共通の配布ルール）
+- [.claude/rules/development-flow.md](./.claude/rules/development-flow.md) — 開発フローの正本（全プロジェクト共通の配布ルール）
 - [CONTRIBUTING.md](./CONTRIBUTING.md) — 開発運用ルール全般（ブランチ命名・PR/マージ手順）。人向け
 - [docs/requirements.md](./docs/requirements.md) — 要件定義書（ハブ）
 - [docs/spring-boot/README.md](./docs/spring-boot/README.md) — Spring Boot 学習ドキュメント（アーキテクチャ・各ファイルの役割）
