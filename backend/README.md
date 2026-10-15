@@ -49,7 +49,7 @@ docker exec -w /workspace task-management-backend ./gradlew check
 | `config/checkstyle/` | Checkstyle（コーディング規約）の設定 |
 | `config/spotbugs/` | SpotBugs（バグパターン検出）の除外設定 |
 
-DB接続情報（`DB_URL`・`DB_USERNAME`・`DB_PASSWORD`）は環境変数から注入します。値は Docker Compose がリポジトリルートの `.env` から渡します。
+DB接続情報（`DB_URL`・`DB_USERNAME`・`DB_PASSWORD`）は環境変数から注入します。値は Docker Compose が渡します。既定値は `docker-compose.yml` にあり、リポジトリルートに `.env` を作ると、その値で上書きされます（詳しくは[ルートの README](../README.md#設定を変える)）。
 
 ## 学習ドキュメント
 

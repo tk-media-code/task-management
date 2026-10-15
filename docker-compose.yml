@@ -98,10 +98,13 @@ services:
     ports:
       - "8978:8978" # ブラウザからは http://localhost:8978 でアクセス（backendの8080と衝突しない別ポート）
     environment:
-      # 初回起動時の管理者アカウントを事前設定し、セットアップウィザードを省略する。
+      # 初回起動時の自動設定。この4つがそろうと、管理者アカウントを事前設定してセットアップウィザードを省略する
+      # （1つでも欠けると自動設定されず、ウィザードの画面になる）。
       # これはGUI自身へのログイン情報で、DB認証(POSTGRES_*)とは別レイヤ。
       # 既定値はローカル専用。cloudbeaver-workspace ボリュームが空の初回起動時だけ読まれ、
-      # 2回目以降に変えても反映されない。
+      # 設定済みのボリュームでは自動設定は走らず、2回目以降に変えても反映されない。
+      CB_SERVER_NAME: ${CB_SERVER_NAME:-task-management-local}
+      CB_SERVER_URL: ${CB_SERVER_URL:-http://localhost:8978}
       CB_ADMIN_NAME: ${CB_ADMIN_NAME:-cbadmin}
       CB_ADMIN_PASSWORD: ${CB_ADMIN_PASSWORD:-LocalDev1only}
     volumes:

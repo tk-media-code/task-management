@@ -83,12 +83,14 @@ POSTGRES_PASSWORD=別のパスワード
 | `POSTGRES_DB` | `taskmanagement` | DB名。backend の接続先にも使われる |
 | `POSTGRES_USER` | `taskuser` | DBのユーザー名。backend の接続にも使われる |
 | `POSTGRES_PASSWORD` | `local-dev-only` | DBのパスワード。backend の接続にも使われる |
+| `CB_SERVER_NAME` | `task-management-local` | CloudBeaver のサーバー名 |
+| `CB_SERVER_URL` | `http://localhost:8978` | CloudBeaver にブラウザからアクセスするURL |
 | `CB_ADMIN_NAME` | `cbadmin` | CloudBeaver の管理者名 |
 | `CB_ADMIN_PASSWORD` | `LocalDev1only` | CloudBeaver の管理者パスワード |
 
 既定値はローカルで使うためのもので、AWS の本番環境では使いません。
 
-**DBの3つ（`POSTGRES_*`）は、DBを最初に作るときだけ読まれます。** 作成済みのDBに対して `.env` を変えても、DBの名前・ユーザー・パスワードは変わらず、backend だけが新しい値で接続しようとして失敗します。CloudBeaver の2つ（`CB_ADMIN_*`）も、初回起動時だけ読まれます。
+**DBの3つ（`POSTGRES_*`）は、DBを最初に作るときだけ読まれます。** 作成済みのDBに対して `.env` を変えても、DBの名前・ユーザー・パスワードは変わらず、backend だけが新しい値で接続しようとして失敗します。CloudBeaver の4つ（`CB_SERVER_*` と `CB_ADMIN_*`）も、初回起動時だけ読まれます。4つがそろうと、管理者アカウントが自動で作られ、セットアップウィザードは出ません。設定済みの CloudBeaver には効かないため、管理者を作り直したいときは `docker compose down -v` で作り直します。
 
 そのため、すでに `.env` の値でDBを作った環境では、次のどちらかにしてください。
 

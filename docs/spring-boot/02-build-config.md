@@ -104,9 +104,9 @@ tasks.named('test') {
 spring.application.name=task-management
 
 # --- データベース接続 ---
-# DB認証情報は docker compose 経由で .env から注入される環境変数を参照する。
+# DB認証情報は docker compose 経由で注入される環境変数を参照する。
 # ${VAR} は環境変数 VAR を展開するプレースホルダ。compose の environment で
-# DB_URL / DB_USERNAME / DB_PASSWORD をコンテナに渡している（値の実体は .env）。
+# DB_URL / DB_USERNAME / DB_PASSWORD をコンテナに渡している（既定値は docker-compose.yml にあり、.env で上書きできる）。
 spring.datasource.url=${DB_URL}
 spring.datasource.username=${DB_USERNAME}
 spring.datasource.password=${DB_PASSWORD}
@@ -146,7 +146,7 @@ spring.mvc.problemdetails.enabled=true
 
 ここでは、ファイル内のコメントで触れられている用語を補足します。
 
-- **`${DB_URL}`のようなプレースホルダ**：`application.properties`は、OSの環境変数を`${変数名}`の形で埋め込めます。本プロジェクトでは、ルートの`docker-compose.yml`が`.env`の値を読み取り、`backend`コンテナに環境変数として渡し、それをこのファイルが参照する、という流れになっています。
+- **`${DB_URL}`のようなプレースホルダ**：`application.properties`は、OSの環境変数を`${変数名}`の形で埋め込めます。本プロジェクトでは、ルートの`docker-compose.yml`が（既定値、または`.env`で上書きした値を）`backend`コンテナに環境変数として渡し、それをこのファイルが参照する、という流れになっています。
 - **`spring.jpa.hibernate.ddl-auto=update`**：Hibernateに「エンティティクラスの定義を正としてDBスキーマを自動的に作る／更新する」よう指示する設定です。開発中は手軽ですが、本番運用では意図しないカラム変更が起きうるため非推奨とされ、将来的にはFlyway（SQLファイルでスキーマ変更を管理するマイグレーションツール）に置き換える計画です（[要件定義9.4](../requirements/05-tech-stack-and-roadmap.md#94-品質チェックツール)）。
 - **`management.endpoint.health.show-details=never`**：`spring-boot-starter-actuator`が提供する`/actuator/health`エンドポイントの詳細表示レベルの設定です。`never`は`{"status":"UP"}`のみを返す最も安全な既定値で、全環境共通の設定としてあえてこれを明示しています。開発中にDB接続状況などの詳細を見たい場合は、環境ごとにプロファイルを分けて上書きします（[16章](./04-profiles.md#16-環境ごとの設定切り替えプロファイル)で解説）。
 - **`spring.jpa.open-in-view=false`**：Repository・Service・Controllerを実装した際（[17〜23章](./05-repository.md)）に追加した設定です。詳しい経緯は[25章](./07-jpa-performance.md#25-open-in-viewと遅延読み込みの境界)を参照してください。
