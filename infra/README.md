@@ -58,9 +58,15 @@ Internet ──HTTP(80)──▶ EC2 t3.micro (Amazon Linux 2023)
 3. 保管庫は、1PasswordのSSHエージェントが鍵を出す保管庫にする（エージェントの設定は `agent.toml`）
 4. 公開鍵を `~/.ssh/task-management-ec2.pub` に保存する
 
+sshが1Passwordのエージェントを使う設定（`SSH_AUTH_SOCK` か `~/.ssh/config` の `IdentityAgent`）になっていることを前提とします。鍵がエージェントに載っていることは、次のコマンドで確かめます。
+
 ```bash
-# 鍵がエージェントに載っていることを確かめる
+# SSH_AUTH_SOCK がエージェントを指している場合
 ssh-add -l
+
+# SSH_AUTH_SOCK が無く、~/.ssh/config の IdentityAgent で使っている場合は、ソケットを指定する
+# （Linux の 1Password の既定の場所。macOS では場所が違う）
+SSH_AUTH_SOCK=~/.1password/agent.sock ssh-add -l
 ```
 
 **公開鍵だけ**をTerraformがAWSに登録します。Terraformに鍵そのものを生成させると、秘密鍵がstateに平文で保存されてしまうため、この手順は手作業で行います。

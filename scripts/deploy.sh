@@ -94,6 +94,8 @@ preflight() {
 		fail "EC2に接続できません: ec2-user@$HOST"
 		echo "  セキュリティグループのSSH許可元が現在のIPと一致しているか確認してください。" >&2
 		echo "  鍵がエージェントに載っているか（ssh-add -l）と、1Passwordがロックされていないかも確認してください。" >&2
+		echo "  ~/.ssh/config の IdentityAgent でエージェントを使っているなら、SSH_AUTH_SOCK にそのソケットを指定して実行します。" >&2
+		echo "  例: SSH_AUTH_SOCK=~/.1password/agent.sock ssh-add -l" >&2
 		echo "  現在のIP: $(curl -s https://checkip.amazonaws.com 2>/dev/null)" >&2
 		return 1
 	fi
