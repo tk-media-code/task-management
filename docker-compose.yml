@@ -5,8 +5,9 @@
 # ソースの変更は Gradle の継続ビルド(--continuous)が検知して自動で再コンパイルし、
 # それを Spring Boot DevTools が検知してアプリを高速に再起動します（コンテナは再起動しません）。
 #
-# DB接続情報（DB名・ユーザー名・パスワード）は同ディレクトリの .env から読み込みます。
-# .env はコミットせず、雛形として .env.example を配布します（cp .env.example .env）。
+# DB接続情報などの環境変数には既定値があります。既定値はローカル専用で、そのまま起動できます。
+# 変えたいときだけ同ディレクトリに .env を作ってください（コミットしません）。
+# 変えられる変数は README の「設定を変える」にあります。
 services:
   frontend:
     build:
@@ -43,9 +44,9 @@ services:
       SPRING_PROFILES_ACTIVE: dev
       # application.properties が ${DB_URL} などのプレースホルダで参照する環境変数。
       # ホスト名 db は下の db サービス名。Compose が同一ネットワーク上で名前解決する。
-      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
-      DB_USERNAME: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-taskmanagement}
+      DB_USERNAME: ${POSTGRES_USER:-taskuser}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-only}
     depends_on:
       db:
         # db の healthcheck が healthy になるまで backend を起動しない（起動順の制御）。
@@ -64,9 +65,11 @@ services:
     container_name: task-management-db
     environment:
       # postgres 公式イメージは初回起動時にこの3つを読み、DBとユーザーを自動作成する。
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # 既定値はローカル専用。backend の DB_URL / DB_USERNAME / DB_PASSWORD の既定値と同じ値にしてある
+      # （ずれると接続できない）。2回目以降の起動では読まれないため、作成済みのDBは変わらない。
+      POSTGRES_DB: ${POSTGRES_DB:-taskmanagement}
+      POSTGRES_USER: ${POSTGRES_USER:-taskuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-dev-only}
     # ports は公開しない（内部化）。db への接続は app-net 経由（backend/cloudbeaverから）に限定し、
     # ホストから実データを見たい場合は cloudbeaver(GUI, http://localhost:8978) 経由で行う。
     volumes:
@@ -75,7 +78,9 @@ services:
       - postgres-data:/var/lib/postgresql
     healthcheck:
       # pg_isready で「接続受付可能」になったかを判定。backend の depends_on から参照する。
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      # $$ は Compose に展開させず、コンテナ内の環境変数（上の POSTGRES_*）をそのまま読ませる。
+      # 既定値をここにも書くと二重管理になる。
+      test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -95,8 +100,10 @@ services:
     environment:
       # 初回起動時の管理者アカウントを事前設定し、セットアップウィザードを省略する。
       # これはGUI自身へのログイン情報で、DB認証(POSTGRES_*)とは別レイヤ。
-      CB_ADMIN_NAME: ${CB_ADMIN_NAME}
-      CB_ADMIN_PASSWORD: ${CB_ADMIN_PASSWORD}
+      # 既定値はローカル専用。cloudbeaver-workspace ボリュームが空の初回起動時だけ読まれ、
+      # 2回目以降に変えても反映されない。
+      CB_ADMIN_NAME: ${CB_ADMIN_NAME:-cbadmin}
+      CB_ADMIN_PASSWORD: ${CB_ADMIN_PASSWORD:-LocalDev1only}
     volumes:
       - cloudbeaver-workspace:/opt/cloudbeaver/workspace # 登録したDB接続やGUI設定を永続化
     depends_on:
