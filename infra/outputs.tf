@@ -16,7 +16,7 @@ output "ec2_public_ip" {
 
 output "ssh_command" {
   description = "EC2に接続するコマンド"
-  value       = "ssh -i ~/.ssh/task-management-ec2.pub ec2-user@${aws_instance.app.public_ip}"
+  value       = "ssh -i ~/.ssh/task-management-ec2.pub -o IdentitiesOnly=yes ec2-user@${aws_instance.app.public_ip}"
 }
 
 output "db_host" {

@@ -86,8 +86,10 @@ preflight() {
 	# ssh-keygen -R <IP> で古い記録を消す。
 	#
 	# IdentitiesOnly=yes を使う理由:
-	# SSH_KEY が公開鍵のとき、ssh は同じ鍵をエージェントから探して署名させる。
-	# 付けないとエージェントの他の鍵も順に試し、鍵が多いと MaxAuthTries を超えて切られる。
+	# -i に公開鍵を渡すと、ssh はその鍵をエージェントに署名させる。
+	# IdentitiesOnly=yes は、指定の鍵が通らないとき（エージェントに無い・EC2に未登録）に、
+	# エージェントの他の鍵まで EC2 に順に見せないためのもの。見せると MaxAuthTries で
+	# 切られ、原因の分かりにくい失敗（Too many authentication failures）になる。
 	SSH_OPTS=(-i "$SSH_KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
 
 	if ! ssh "${SSH_OPTS[@]}" "ec2-user@$HOST" 'true' 2>/dev/null; then
@@ -95,7 +97,8 @@ preflight() {
 		echo "  セキュリティグループのSSH許可元が現在のIPと一致しているか確認してください。" >&2
 		echo "  鍵がエージェントに載っているか（ssh-add -l）と、1Passwordがロックされていないかも確認してください。" >&2
 		echo "  ~/.ssh/config の IdentityAgent でエージェントを使っているなら、SSH_AUTH_SOCK にそのソケットを指定して実行します。" >&2
-		echo "  例: SSH_AUTH_SOCK=~/.1password/agent.sock ssh-add -l" >&2
+		echo "  例: SSH_AUTH_SOCK=~/.1password/agent.sock ssh-add -l（Linuxの既定）" >&2
+		echo "  秘密鍵ファイルを使っているなら SSH_KEY=<秘密鍵のパス> を付けて実行してください。" >&2
 		echo "  現在のIP: $(curl -s https://checkip.amazonaws.com 2>/dev/null)" >&2
 		return 1
 	fi
@@ -229,7 +232,7 @@ deploy_backend() {
 	done
 
 	fail "アプリケーションが起動しませんでした。ログを確認してください:"
-	echo "  ssh -i $SSH_KEY ec2-user@$HOST 'docker logs --tail 50 $REMOTE_CONTAINER'" >&2
+	echo "  ssh -i $SSH_KEY -o IdentitiesOnly=yes ec2-user@$HOST 'docker logs --tail 50 $REMOTE_CONTAINER'" >&2
 	return 1
 }
 
