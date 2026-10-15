@@ -53,7 +53,7 @@ variable "http_allowed_cidrs" {
 }
 
 variable "ssh_public_key_path" {
-  description = "EC2に登録する公開鍵のパス。秘密鍵はローカルに置いたままにする"
+  description = "EC2に登録する公開鍵のパス。秘密鍵は1Passwordに置いたままにする（ファイルの鍵を使う場合はローカルに置く）"
   type        = string
   default     = "~/.ssh/task-management-ec2.pub"
 }

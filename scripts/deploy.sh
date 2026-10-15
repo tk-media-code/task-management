@@ -37,7 +37,7 @@ INFRA_DIR="$REPO_ROOT/infra"
 
 readonly FRONTEND_CONTAINER="task-management-frontend"
 readonly REMOTE_CONTAINER="task-management-backend"
-readonly SSH_KEY="${SSH_KEY:-$HOME/.ssh/task-management-ec2}"
+readonly SSH_KEY="${SSH_KEY:-$HOME/.ssh/task-management-ec2.pub}"
 
 readonly EXIT_OK=0
 readonly EXIT_FAILURE=1
@@ -68,8 +68,9 @@ preflight() {
 	fi
 
 	if [ ! -f "$SSH_KEY" ]; then
-		fail "SSHの秘密鍵が見つかりません: $SSH_KEY"
-		echo "  ssh-keygen -t ed25519 -f ~/.ssh/task-management-ec2 -N '' で作成してください。" >&2
+		fail "SSHの鍵が見つかりません: $SSH_KEY"
+		echo "  鍵は1PasswordのSSHエージェントに置き、公開鍵を ~/.ssh/task-management-ec2.pub に置きます（infra/README.md）。" >&2
+		echo "  秘密鍵ファイルを使う場合は SSH_KEY=<秘密鍵のパス> を付けて実行してください。" >&2
 		return 1
 	fi
 
@@ -83,11 +84,16 @@ preflight() {
 	# applyのたびにIPもホスト鍵も変わりうるため、未知のホストは自動で受け入れる。
 	# 既知のIPで鍵だけが変わった場合は警告が出るので、そのときは
 	# ssh-keygen -R <IP> で古い記録を消す。
-	SSH_OPTS=(-i "$SSH_KEY" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
+	#
+	# IdentitiesOnly=yes を使う理由:
+	# SSH_KEY が公開鍵のとき、ssh は同じ鍵をエージェントから探して署名させる。
+	# 付けないとエージェントの他の鍵も順に試し、鍵が多いと MaxAuthTries を超えて切られる。
+	SSH_OPTS=(-i "$SSH_KEY" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
 
 	if ! ssh "${SSH_OPTS[@]}" "ec2-user@$HOST" 'true' 2>/dev/null; then
 		fail "EC2に接続できません: ec2-user@$HOST"
 		echo "  セキュリティグループのSSH許可元が現在のIPと一致しているか確認してください。" >&2
+		echo "  鍵がエージェントに載っているか（ssh-add -l）と、1Passwordがロックされていないかも確認してください。" >&2
 		echo "  現在のIP: $(curl -s https://checkip.amazonaws.com 2>/dev/null)" >&2
 		return 1
 	fi

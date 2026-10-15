@@ -263,7 +263,7 @@ terraform output -raw db_password
 
 Terraformには秘密鍵を生成する `tls_private_key` リソースがありますが、**生成された秘密鍵はstateに平文で保存されます**。
 
-SSHの鍵は `ssh-keygen` でローカルに作り、**公開鍵だけをTerraformに渡す**のが正しい形です。
+SSHの鍵は1Passwordか `ssh-keygen` で作り、**公開鍵だけをTerraformに渡す**のが正しい形です。
 
 ### 21.4 validationで機械的に防ぐ
 
