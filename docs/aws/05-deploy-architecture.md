@@ -201,7 +201,9 @@ credit_specification {
 
 ### 20.3 キーペア
 
-SSH接続に使う鍵です。仕組みとして重要なのは、**AWSに預けるのは公開鍵だけ**という点です。秘密鍵は手元に置いたままにします。
+SSH接続に使う鍵です。仕組みとして重要なのは、**AWSに預けるのは公開鍵だけ**という点です。秘密鍵はAWSに渡さず、手元（1Passwordか `~/.ssh`）に置きます。
+
+1Passwordで作る場合は、「新規アイテム」→「SSHキー」でEd25519の鍵を生成し、公開鍵を `~/.ssh/task-management-ec2.pub` に保存します。秘密鍵は1PasswordのSSHエージェントが署名に使うので、ファイルとして手元に出しません。手順は [infra/README.md](../../infra/README.md) にあります。`ssh-keygen` で作る場合は次のとおりです。
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/task-management-ec2 -N ''

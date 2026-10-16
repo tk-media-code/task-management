@@ -104,7 +104,7 @@ resource "aws_key_pair" "deployer" {
   # ホームディレクトリに展開しないため、そのまま渡すとエラーになる。
   public_key = file(pathexpand(var.ssh_public_key_path))
 
-  # AWSに渡すのは公開鍵だけで、秘密鍵はローカルに置いたままにする。
+  # AWSに渡すのは公開鍵だけで、秘密鍵はAWSに渡さず手元（1Passwordか ~/.ssh）に置く。
   # tls_private_key リソースでTerraformに鍵を生成させる方法もあるが、
   # その場合「秘密鍵がstateに平文で保存される」ため使わない。
   # 詳細は docs/terraform/03-state.md 12章。

@@ -51,11 +51,31 @@ Internet ──HTTP(80)──▶ EC2 t3.micro (Amazon Linux 2023)
 
 ### 1. SSH鍵を作る
 
+1Passwordで鍵を作り、秘密鍵は1Passwordに置いたままにします。
+
+1. 1Passwordで「新規アイテム」→「SSHキー」を選び、キーの種類に **Ed25519** を選んで生成する
+2. タイトルは `task-management-ec2` にする
+3. 保管庫は、1PasswordのSSHエージェントが鍵を出す保管庫にする（エージェントの設定は `agent.toml`）
+4. 公開鍵を `~/.ssh/task-management-ec2.pub` に保存する
+
+sshが1Passwordのエージェントを使う設定（`SSH_AUTH_SOCK` か `~/.ssh/config` の `IdentityAgent`）になっていることを前提とします。sshは `IdentityAgent` があれば `SSH_AUTH_SOCK` より先にそちらを使いますが、`ssh-add` は `SSH_AUTH_SOCK` しか見ません。鍵がエージェントに載っていることは、次のコマンドで確かめます。
+
+```bash
+# ~/.ssh/config に IdentityAgent があるなら、そのソケットを SSH_AUTH_SOCK に指定する
+# （Linux の 1Password の既定の場所。macOS では場所が違う）
+SSH_AUTH_SOCK=~/.1password/agent.sock ssh-add -l
+
+# IdentityAgent が無ければ、そのまま実行する
+ssh-add -l
+```
+
+**公開鍵だけ**をTerraformがAWSに登録します。Terraformに鍵そのものを生成させると、秘密鍵がstateに平文で保存されてしまうため、この手順は手作業で行います。
+
+1Passwordを使わない場合は、従来どおり `ssh-keygen` で作ります。このときは `scripts/deploy.sh` に `SSH_KEY=<秘密鍵のパス>` を付けて実行してください。手で打つ `ssh -i` も、`.pub` ではなく秘密鍵のパスにします。
+
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/task-management-ec2 -C "task-management deploy" -N ''
 ```
-
-秘密鍵はローカルに置いたままにし、**公開鍵だけ**をTerraformがAWSに登録します。Terraformに鍵そのものを生成させると、秘密鍵がstateに平文で保存されてしまうため、この手順は手作業で行います。
 
 ### 2. 変数ファイルを用意する
 
@@ -122,10 +142,10 @@ terraform -chdir=infra output          # 接続情報の一覧
 IP=$(terraform -chdir=infra output -raw ec2_public_ip)
 
 # EC2に入り、初期化の完了を待つ（初回は数分かかる）
-ssh -i ~/.ssh/task-management-ec2 ec2-user@$IP 'sudo cloud-init status --wait'
+ssh -i ~/.ssh/task-management-ec2.pub -o IdentitiesOnly=yes ec2-user@$IP 'sudo cloud-init status --wait'
 
 # ★ アプリを動かす前に、まずここでDBへの到達性だけを確定させる
-ssh -i ~/.ssh/task-management-ec2 ec2-user@$IP
+ssh -i ~/.ssh/task-management-ec2.pub -o IdentitiesOnly=yes ec2-user@$IP
 psql -h <RDSのホスト名> -U taskuser -d taskmanagement -c 'select version();'
 ```
 
