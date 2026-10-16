@@ -47,7 +47,7 @@ docker compose up -d
 | --- | --- | --- |
 | フロントエンド | http://localhost:5173 | アプリ本体 |
 | バックエンド | http://localhost:8080 | REST API（`/api/...`） |
-| CloudBeaver | http://localhost:8978 | ブラウザからDBの中身を確認するためのGUI |
+| CloudBeaver | http://localhost:8978 | ブラウザからDBの中身を確認するためのGUI（既定の管理者パスワードは公開されているため、このPCからだけ開けます） |
 
 ### サンプルデータを投入する
 
@@ -90,7 +90,17 @@ POSTGRES_PASSWORD=別のパスワード
 
 既定値はローカルで使うためのもので、AWS の本番環境では使いません。
 
-**DBの3つ（`POSTGRES_*`）は、DBを最初に作るときだけ読まれます。** 作成済みのDBに対して `.env` を変えても、DBの名前・ユーザー・パスワードは変わらず、backend だけが新しい値で接続しようとして失敗します。CloudBeaver の4つ（`CB_SERVER_*` と `CB_ADMIN_*`）も、初回起動時だけ読まれます。4つがそろうと、管理者アカウントが自動で作られ、セットアップウィザードは出ません。設定済みの CloudBeaver には効かないため、管理者を作り直したいときは `docker compose down -v` で作り直します。
+**DBの3つ（`POSTGRES_*`）は、DBを最初に作るときだけ読まれます。** 作成済みのDBに対して `.env` を変えても、DBの名前・ユーザー・パスワードは変わらず、backend だけが新しい値で接続しようとして失敗します。CloudBeaver の4つ（`CB_SERVER_*` と `CB_ADMIN_*`）も、初回起動時だけ読まれます。4つがそろうと、管理者アカウントが自動で作られ、セットアップウィザードは出ません。設定済みの CloudBeaver には効かないため、管理者を作り直したいときは、CloudBeaver のボリュームだけを消します（DBの中身は消えません）。
+
+```bash
+docker compose stop cloudbeaver
+docker compose rm -f cloudbeaver
+docker volume ls | grep cloudbeaver-workspace   # ボリューム名を確かめる（通常は task-management_cloudbeaver-workspace）
+docker volume rm task-management_cloudbeaver-workspace
+docker compose up -d cloudbeaver
+```
+
+なお `docker compose down -v` は、DBの中身や Gradle・node_modules のキャッシュを含むすべてのボリュームを消します。管理者の作り直しには使わないでください。
 
 そのため、すでに `.env` の値でDBを作った環境では、次のどちらかにしてください。
 
