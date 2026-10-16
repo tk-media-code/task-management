@@ -35,12 +35,11 @@
 Docker と Docker Compose が動作する環境が必要です。**ホストに Java や Node.js を用意する必要はありません**（すべてコンテナ内で完結します）。
 
 ```bash
-# 1. 環境変数ファイルを用意する（DBの名前・ユーザー・パスワードを設定）
-cp .env.example .env
-
-# 2. 全サービスを起動する（初回はイメージのビルドに数分かかります）
+# 全サービスを起動する（初回はイメージのビルドに数分かかります）
 docker compose up -d
 ```
+
+環境変数ファイル（`.env`）を用意する必要はありません。DBの名前・ユーザー・パスワードなどには、ローカル専用の既定値が `docker-compose.yml` に入っています。値を変えたいときは、後述の「設定を変える」を参照してください。
 
 起動後、以下のURLでアクセスできます。
 
@@ -48,7 +47,7 @@ docker compose up -d
 | --- | --- | --- |
 | フロントエンド | http://localhost:5173 | アプリ本体 |
 | バックエンド | http://localhost:8080 | REST API（`/api/...`） |
-| CloudBeaver | http://localhost:8978 | ブラウザからDBの中身を確認するためのGUI |
+| CloudBeaver | http://localhost:8978 | ブラウザからDBの中身を確認するためのGUI（既定の管理者パスワードは公開されているため、このPCからだけ開けます） |
 
 ### サンプルデータを投入する
 
@@ -69,6 +68,44 @@ docker compose down
 # データベースの中身ごと消してやり直す
 docker compose down -v
 ```
+
+### 設定を変える
+
+`.env` が無くても、既定値のまま起動します。値を変えたいときだけ、リポジトリ直下に `.env` を作ってください（`.env` はコミットされません）。変えたい変数だけを書けば足り、書かなかった変数は既定値になります。
+
+```bash
+# .env の例（変えたい変数だけを書く）
+POSTGRES_PASSWORD=別のパスワード
+```
+
+| 変数 | 既定値 | 内容 |
+| --- | --- | --- |
+| `POSTGRES_DB` | `taskmanagement` | DB名。backend の接続先にも使われる |
+| `POSTGRES_USER` | `taskuser` | DBのユーザー名。backend の接続にも使われる |
+| `POSTGRES_PASSWORD` | `local-dev-only` | DBのパスワード。backend の接続にも使われる |
+| `CB_SERVER_NAME` | `task-management-local` | CloudBeaver のサーバー名 |
+| `CB_SERVER_URL` | `http://localhost:8978` | CloudBeaver にブラウザからアクセスするURL |
+| `CB_ADMIN_NAME` | `cbadmin` | CloudBeaver の管理者名 |
+| `CB_ADMIN_PASSWORD` | `LocalDev1only` | CloudBeaver の管理者パスワード |
+
+既定値はローカルで使うためのもので、AWS の本番環境では使いません。
+
+**DBの3つ（`POSTGRES_*`）は、DBを最初に作るときだけ読まれます。** 作成済みのDBに対して `.env` を変えても、DBの名前・ユーザー・パスワードは変わらず、backend だけが新しい値で接続しようとして失敗します。CloudBeaver の4つ（`CB_SERVER_*` と `CB_ADMIN_*`）も、初回起動時だけ読まれます。4つがそろうと、管理者アカウントが自動で作られ、セットアップウィザードは出ません。設定済みの CloudBeaver には効かないため、管理者を作り直したいときは、CloudBeaver のボリュームだけを消します（DBの中身は消えません）。
+
+```bash
+docker compose stop cloudbeaver
+docker compose rm -f cloudbeaver
+docker volume ls | grep cloudbeaver-workspace   # ボリューム名を確かめる（通常は task-management_cloudbeaver-workspace）
+docker volume rm task-management_cloudbeaver-workspace
+docker compose up -d cloudbeaver
+```
+
+なお `docker compose down -v` は、DBの中身や Gradle・node_modules のキャッシュを含むすべてのボリュームを消します。管理者の作り直しには使わないでください。
+
+そのため、すでに `.env` の値でDBを作った環境では、次のどちらかにしてください。
+
+- `.env` を残す。今までどおり、その値で動きます
+- `.env` を消す、または値を変える。このときは `docker compose down -v` でDBの中身ごと消し、作り直します
 
 ### バックエンドのコマンドを実行する場合
 

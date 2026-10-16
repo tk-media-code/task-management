@@ -1,7 +1,7 @@
 __pycache__/
 *.pyc
 
-# 環境変数（DB認証情報など）。雛形の .env.example だけをコミットする
+# 環境変数の上書き（DB認証情報など）。既定値は docker-compose.yml にあり、.env は変えたいときだけ作る
 .env
 
 # Claude Codeの個人設定（permissions.allow等）。品質チェックの強制フックは
