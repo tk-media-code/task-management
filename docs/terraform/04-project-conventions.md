@@ -37,7 +37,8 @@ infra/
 ├── database.tf      RDS
 ├── outputs.tf       出力値
 ├── files/           EC2に配置するファイル
-├── terraform.tfvars 変数の値（機密を含む。コミットしない）
+├── terraform.tfvars 変数の値（コミットしない。パスワードは書かない）
+├── terraform.op     1Passwordの参照の雛形（実値は入っていないのでコミットする）
 └── account/         予算アラート（stateを分けている）
 ```
 
@@ -106,8 +107,8 @@ variable "aws_region" {
 | 方法 | 書き方 | 使いどころ |
 | --- | --- | --- |
 | `default` | `variables.tf` に直接 | 秘密でなく、変える理由も無い値（リージョンなど） |
-| `terraform.tfvars` | `db_password = "..."` | 環境ごとに変わる値。**コミットしない** |
-| 環境変数 | `TF_VAR_db_password=... terraform apply` | CI／シェル履歴に残したくない値 |
+| `terraform.tfvars` | `ssh_allowed_cidr = "..."` | 環境ごとに変わるが、秘密ではない値。**コミットしない** |
+| 環境変数 | `TF_VAR_db_password=... terraform apply` | 秘密の値。ファイルに残したくない値（本プロジェクトではこちらでパスワードを渡す。[15.4](#154-パスワードを1passwordから渡す)） |
 | 対話入力 | 値を渡さないとTerraformが尋ねてくる | 手元で1回だけ実行する場合 |
 
 `TF_VAR_` プレフィックスを付けた環境変数は、対応する名前の変数に自動で入る（`TF_VAR_db_password` → `var.db_password`）。
@@ -117,6 +118,40 @@ variable "aws_region" {
 `sensitive = true` を付けると、`plan` や `apply` の出力でその値が `(sensitive value)` と表示される。**うっかり画面やログに出さないための機能**である。
 
 ただし**stateには平文で書き込まれる**（[12.1](./03-state.md#121-これは仕様である)）。「sensitiveを付けたから安全」ではないことを、はっきり区別しておくこと。本当に守りたい値は [12.3](./03-state.md#123-そもそもstateに入れない) の方法でstateに入れないようにする。
+
+### 15.4 パスワードを1Passwordから渡す
+
+本プロジェクトでは、RDSのマスターパスワード（`db_password`）を `terraform.tfvars` に**書かない**。1Passwordの tk-media 保管庫にあるアイテム `task-management-aws` のフィールド `db-password` から、環境変数 `TF_VAR_db_password` として渡す。
+
+**tfvars に書かない理由は、平文のファイルが手元に残ることにある。** tfvars は `.gitignore` 済みでコミットはされないが、ディスク上には平文で居座り、バックアップや同期、AIエージェントの読み取りの対象になりうる。
+
+**ただし、環境変数で渡してもstateには平文で入る。** これは渡し方に関係しない（[15.3](#153-sensitive--true-の効果と限界)）。だから、せめて入口のファイル（tfvars）は平文にしない。そのうえで、`terraform.tfstate` と `terraform.tfstate.backup` は秘密として扱う（[12.2](./03-state.md#122-したがってstateは-env-と同格に扱う)）。
+
+環境変数なら、パスワードはコマンドを実行している間のプロセスの中にだけ存在し、入力用のファイルとしては残らない。
+
+**既存の `terraform.tfvars` に `db_password` の行があれば消す。** tfvars は環境変数より優先されるので、残っていると `TF_VAR_db_password` が黙って無視される。
+
+**`TF_VAR_<変数名>` という名前の環境変数は、Terraformが同名の変数の値として自動で読む。** `variables.tf` も `.tf` のコードも変えずに、値の入口だけを差し替えられる。
+
+**1Passwordの参照（`op://保管庫/アイテム/フィールド`）は、実行の瞬間に値へ置き換える。** 参照を並べた雛形が `infra/terraform.op` で、実値を含まないのでコミットしてよい。
+
+```
+TF_VAR_db_password=op://tk-media/task-management-aws/db-password
+```
+
+リポジトリのルートで実行する。`oprun` も `op run` も、雛形のパスを今いるディレクトリから読み、コマンドも同じディレクトリで動かすため、Terraformには `-chdir=infra` を付ける。
+
+```bash
+# WSL（oprun は op.exe inject を通すラッパーで、リポジトリには含まれない）
+oprun infra/terraform.op -- terraform -chdir=infra plan -input=false
+oprun --no-masking infra/terraform.op -- terraform -chdir=infra apply
+
+# 他のOS（1Password CLI）
+op run --env-file=infra/terraform.op -- terraform -chdir=infra plan -input=false
+op run --no-masking --env-file=infra/terraform.op -- terraform -chdir=infra apply
+```
+
+`oprun` は `op run` と同じく出力をマスクし、先頭の `--no-masking` で外せる前提で書いている。`apply`（と `destroy`）に `--no-masking` を付けるのは、確認プロンプトに人が `yes` と答える対話であり、出力を加工する既定のマスキング（秘密の値の伏せ字化）を通すと、その対話を邪魔しうるため。値の決まり（英数字のみ16〜41文字）は `variables.tf` の `validation` が検査する（[21.4](./05-writing-the-stack.md#214-validationで機械的に防ぐ)）。
 
 ---
 

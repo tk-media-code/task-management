@@ -166,7 +166,7 @@ Terraformのコードをリポジトリ内の `infra/` に置く理由（アプ�
 
 ## 15. 変数の渡し方と機密情報
 
-`variable` の宣言と、値を渡す4つの方法（`default`・`terraform.tfvars`・`TF_VAR_` 環境変数・対話入力）の使い分け。`sensitive = true` の効果と、それが暗号化ではないという限界を扱います。
+`variable` の宣言と、値を渡す4つの方法（`default`・`terraform.tfvars`・`TF_VAR_` 環境変数・対話入力）の使い分け。`sensitive = true` の効果と、それが暗号化ではないという限界を扱います。本プロジェクトでパスワードを `terraform.tfvars` に書かず、1Passwordから `TF_VAR_db_password` で渡している理由と手順も説明します。
 
 📄 詳細：[04-project-conventions.md](./04-project-conventions.md#15-変数の渡し方と機密情報)
 

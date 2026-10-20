@@ -341,17 +341,19 @@ aws ec2 describe-instances \
 ### 22.3 destroyの手順
 
 ```bash
-# 1. 何が消えるかを先に読む
-terraform -chdir=infra plan -destroy
+# 1. 何が消えるかを先に読む（リポジトリのルートで実行する）
+oprun infra/terraform.op -- terraform -chdir=infra plan -destroy -input=false
 
 # 2. 実行する（-auto-approve は使わない）
-terraform -chdir=infra destroy
+oprun --no-masking infra/terraform.op -- terraform -chdir=infra destroy
 
 # 3. stateが空になったことを確認する
 terraform -chdir=infra state list
 ```
 
 `state list` が何も出力しなければ、Terraformの管理下にリソースは残っていません。
+
+`plan` と `destroy` を `oprun` 経由にしているのは、`db_password` が必須の変数で、1Passwordから `TF_VAR_db_password` で渡す必要があるためです（[15.4](./04-project-conventions.md#154-パスワードを1passwordから渡す)）。`state list` は値を使わないので、そのまま実行できます。
 
 ### 22.4 消し忘れを確認する対象
 
