@@ -63,7 +63,9 @@ preflight() {
 
 	if [ ! -f "$INFRA_DIR/terraform.tfstate" ]; then
 		fail "infra/terraform.tfstate がありません。先にインフラを構築してください。"
-		echo "  terraform -chdir=infra apply" >&2
+		echo "  oprun --no-masking infra/terraform.op -- terraform -chdir=infra apply" >&2
+		echo "  WSL 以外では op run --no-masking --env-file=infra/terraform.op -- ... に読み替えてください。" >&2
+		echo "  パスワードの渡し方は infra/README.md の手順3を参照してください。" >&2
 		return 1
 	fi
 

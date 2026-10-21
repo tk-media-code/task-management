@@ -120,12 +120,14 @@ docker exec -w /workspace task-management-backend ./gradlew check
 AWS上に構築する本番環境の構成（EC2 1台 + RDS）はTerraformで定義しており、`infra/` にあります。手順は [infra/README.md](./infra/README.md) を参照してください。
 
 ```bash
-terraform -chdir=infra plan     # 何が作られるかを確認する
-terraform -chdir=infra apply    # インフラを構築する
-bash scripts/deploy.sh --all    # アプリを配置する
+oprun infra/terraform.op -- terraform -chdir=infra plan -input=false   # 何が作られるかを確認する
+oprun --no-masking infra/terraform.op -- terraform -chdir=infra apply  # インフラを構築する
+bash scripts/deploy.sh --all                                           # アプリを配置する
 ```
 
-**課金を止める最も確実な方法はリソースを消すことです。** 使い終わったら `terraform -chdir=infra destroy` を実行してください。消し忘れの確認手順も [infra/README.md](./infra/README.md#片付けdestroy) にまとめています。
+DBのパスワードは1Passwordから渡します（上は WSL の例。渡し方は [infra/README.md の手順3](./infra/README.md#3-dbのパスワードを1passwordに入れる) を参照）。
+
+**課金を止める最も確実な方法はリソースを消すことです。** 使い終わったら `oprun --no-masking infra/terraform.op -- terraform -chdir=infra destroy` を実行してください。消し忘れの確認手順も [infra/README.md](./infra/README.md#片付けdestroy) にまとめています。
 
 ## 開発の進め方
 

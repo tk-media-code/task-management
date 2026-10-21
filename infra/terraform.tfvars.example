@@ -5,9 +5,11 @@
 # 確認方法: curl -s https://checkip.amazonaws.com
 ssh_allowed_cidr = "203.0.113.1/32"
 
-# RDSのマスターパスワード。英数字のみ16〜41文字。
-# 生成方法: openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 24
-db_password = "CHANGE_ME_alnum_only_16_to_41"
+# RDSのマスターパスワード（db_password）はここに書かない。
+# 1Password から環境変数 TF_VAR_db_password で渡す（参照の雛形は infra/terraform.op）。
+# tfvars に書くと平文のファイルが手元に残るため。
+# （stateにはどの渡し方でも平文で入るので、tfstate と .backup は秘密として扱う）
+# 既に db_password の行があれば消す。tfvars は環境変数より優先され、残ると TF_VAR_ が無視される。
 
 # HTTPを許可する送信元。既定は全開放。
 # ベーシック認証もHTTPSも実装していないため、人に見せる必要がない間は

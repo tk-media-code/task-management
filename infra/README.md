@@ -84,17 +84,31 @@ cp infra/terraform.tfvars.example infra/terraform.tfvars
 cp infra/account/terraform.tfvars.example infra/account/terraform.tfvars
 ```
 
-それぞれを編集します。必要な値は次のとおりです。
+それぞれを編集します。**`infra/terraform.tfvars` に書くのは `ssh_allowed_cidr` と `http_allowed_cidrs` だけ**で、DBのパスワードは書きません（`infra/account/` のほうは予算アラートの通知先 `budget_notification_email`）。
 
 ```bash
 # 自分のグローバルIP（SSHの許可元に使う）
 curl -s https://checkip.amazonaws.com
-
-# DBのパスワード（英数字のみ。理由は variables.tf のコメント参照）
-openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 24; echo
 ```
 
 `*.tfvars` は `.gitignore` 済みでコミットされません。
+
+**既存の `terraform.tfvars` に `db_password` の行があれば消してください。** tfvars は環境変数より優先されるので、残っていると `TF_VAR_db_password` が黙って無視されます。
+
+### 3. DBのパスワードを1Passwordに入れる
+
+DBのパスワードは tfvars に書かず、1Passwordから環境変数 `TF_VAR_db_password` で渡します。tfvars に書くと平文のファイルが手元に残るためです。stateにはどの渡し方でも平文で入るので、せめて入口のファイルは平文にせず、`terraform.tfstate` と `.backup` は秘密として扱います（[詳しい理由](../docs/terraform/04-project-conventions.md#154-パスワードを1passwordから渡す)）。
+
+1. 次のコマンドで値を生成する（英数字のみ16〜41文字。理由は `variables.tf` のコメント参照）
+
+   ```bash
+   openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 24; echo
+   ```
+
+2. 1Passwordの tk-media 保管庫にあるアイテム `task-management-aws` の、フィールド `db-password` に入れる
+3. 以降の `plan` / `apply` / `destroy` は、`infra/terraform.op`（1Passwordの参照を書いた雛形。実値は入っていない）を通して、**リポジトリのルートで**実行する。雛形のパスもコマンドも今いるディレクトリが基準なので、Terraformには `-chdir=infra` を付ける
+
+WSLでは `oprun`（`op.exe inject` を通すラッパー。リポジトリには含まれない）を使います。他のOSでは `op run --env-file=infra/terraform.op -- ...` に読み替えてください。`apply` と `destroy` は `op run --no-masking --env-file=infra/terraform.op -- terraform -chdir=infra apply` のように `--no-masking` も付けます。ラッパーは `op run` と同じく出力をマスクし、先頭の `--no-masking` で外せる前提です。
 
 ---
 
@@ -126,9 +140,11 @@ apply後、AWSから購読確認のメールが届きます。
 
 ```bash
 terraform -chdir=infra init
-terraform -chdir=infra plan      # 何が作られるかを読む
-terraform -chdir=infra apply
+oprun infra/terraform.op -- terraform -chdir=infra plan -input=false   # 何が作られるかを読む
+oprun --no-masking infra/terraform.op -- terraform -chdir=infra apply
 ```
+
+`apply` は確認プロンプトに人が `yes` と答える対話なので、`--no-masking` を付けます。`init` はパスワードを使いません。`output` に `TF_VAR_db_password` は要らず（stateだけを読む）、どちらもそのまま実行できます。
 
 `plan` を読むときに特に見るべき点：
 
@@ -155,7 +171,7 @@ psql -h <RDSのホスト名> -U taskuser -d taskmanagement -c 'select version();
 | --- | --- |
 | 応答がなく固まる | RDS側のSGがEC2のSGを参照していない／サブネットグループの指定が違う |
 | `could not translate host name` | VPCの `enable_dns_hostnames` が false |
-| `password authentication failed` | tfvarsの値と打ち込んだ値が違う |
+| `password authentication failed` | 1Passwordの `db-password` の値と打ち込んだ値が違う |
 
 ---
 
@@ -225,10 +241,10 @@ curl --max-time 5 "http://$IP:8080/"                              # 接続不可
 
 ```bash
 # 1. 何が消えるかを先に読む
-terraform -chdir=infra plan -destroy
+oprun infra/terraform.op -- terraform -chdir=infra plan -destroy -input=false
 
 # 2. 実行する
-terraform -chdir=infra destroy
+oprun --no-masking infra/terraform.op -- terraform -chdir=infra destroy
 
 # 3. stateが空になったことを確認する
 terraform -chdir=infra state list
@@ -268,6 +284,8 @@ aws ce get-cost-and-usage --time-period Start=<destroyの前日>,End=<翌々日>
 | --- | --- |
 | `providers.tf` | プロバイダとバージョンの固定、全リソース共通のタグ |
 | `variables.tf` | 入力変数の宣言。SSHの全開放とパスワードの記号を機械的に禁止している |
+| `terraform.op` | DBのパスワードを1Passwordから `TF_VAR_db_password` で渡す参照の雛形（実値は入っていない） |
+| `terraform.tfvars.example` | tfvars の雛形（SSH・HTTPの許可元。パスワードは含まない） |
 | `network.tf` | VPC・サブネット・ルートテーブル・DBサブネットグループ |
 | `security.tf` | セキュリティグループ・キーペア |
 | `compute.tf` | AMIの検索とEC2 |
